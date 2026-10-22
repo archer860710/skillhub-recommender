@@ -23,7 +23,7 @@ if hasattr(sys.stdout, "reconfigure"):
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
 EXCLUDE_DIRS = {".git", "dist", "__pycache__", ".skillhub", ".idea", ".vscode"}
-EXCLUDE_FILES = {".DS_Store", "Thumbs.db"}
+EXCLUDE_FILES = {".DS_Store", "Thumbs.db", ".gitignore", ".gitattributes"}
 EXCLUDE_SUFFIX = {".pyc", ".pyo"}
 
 
