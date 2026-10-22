@@ -1,0 +1,312 @@
+#!/usr/bin/env python3
+"""发布前预检：结构、frontmatter、命名一致性、敏感信息、体积。
+
+用法:
+    python scripts/validate.py            # 检查当前技能包
+    python scripts/validate.py --quiet    # 只输出结论
+退出码: 0 = 通过, 1 = 有问题
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+import zipfile
+from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+ROOT = Path(__file__).resolve().parent.parent
+
+REQUIRED_FILES = ["SKILL.md", "README.md", "LICENSE"]
+SKIP_DIRS = {".git", "dist", "__pycache__", ".skillhub", ".idea", ".vscode"}
+
+SECRET_PATTERNS = [
+    (r"skh_[A-Za-z0-9]{8,}", "SkillHub API Token (skh_…)"),
+    (r"ghp_[A-Za-z0-9]{20,}", "GitHub PAT (ghp_…)"),
+    (r"github_pat_[A-Za-z0-9_]{20,}", "GitHub fine-grained PAT"),
+    (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI/Anthropic Key"),
+    (r"AKID[A-Za-z0-9]{10,}", "腾讯云 SecretId"),
+    (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "私钥"),
+]
+
+LOCAL_PATH_PATTERNS = [
+    (r"[A-Za-z]:\\\\?Users\\\\?[A-Za-z0-9._-]+", "Windows 用户绝对路径"),
+    (r"/Users/[A-Za-z0-9._-]+/", "macOS 用户绝对路径"),
+    (r"D:\\\\?WorkBuddy Projects", "本机工作区路径"),
+]
+
+
+class Report:
+    def __init__(self, quiet: bool = False) -> None:
+        self.errors: list[str] = []
+        self.warns: list[str] = []
+        self.ok: list[str] = []
+        self.quiet = quiet
+
+    def error(self, msg: str) -> None:
+        self.errors.append(msg)
+
+    def warn(self, msg: str) -> None:
+        self.warns.append(msg)
+
+    def good(self, msg: str) -> None:
+        self.ok.append(msg)
+
+    def render(self) -> None:
+        if not self.quiet:
+            for m in self.ok:
+                print(f"  \u2713 {m}")
+            for m in self.warns:
+                print(f"  ! {m}")
+        for m in self.errors:
+            print(f"  \u2717 {m}")
+        print()
+        if self.errors:
+            print(f"预检未通过：{len(self.errors)} 个错误，{len(self.warns)} 个警告")
+        else:
+            print(f"预检通过：{len(self.ok)} 项检查，{len(self.warns)} 个警告")
+
+
+def parse_frontmatter(text: str) -> tuple[dict, str]:
+    """极简 YAML frontmatter 解析，只支持本 Skill 用到的写法。"""
+    if not text.startswith("---"):
+        return {}, text
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}, text
+    block = text[3:end]
+    body = text[end + 4 :].lstrip("\n")
+    data: dict = {}
+    key = None
+    buf: list[str] = []
+
+    def flush() -> None:
+        nonlocal key, buf
+        if key is not None:
+            data[key] = " ".join(x.strip() for x in buf).strip()
+        key, buf = None, []
+
+    for raw in block.splitlines():
+        if not raw.strip():
+            continue
+        if raw[:1] in " \t" or raw.strip() in (">", "|"):
+            if raw.strip() not in (">", "|"):
+                buf.append(raw.strip())
+            continue
+        if ":" in raw:
+            flush()
+            k, v = raw.split(":", 1)
+            k, v = k.strip(), v.strip()
+            if v in (">", "|", ">-", "|-"):
+                key, buf = k, []
+            else:
+                data[k] = v.strip("\"'")
+    flush()
+    return data, body
+
+
+def iter_files(root: Path):
+    for p in sorted(root.rglob("*")):
+        if p.is_dir():
+            continue
+        parts = set(p.relative_to(root).parts)
+        if parts & SKIP_DIRS:
+            continue
+        if p.suffix in {".pyc"}:
+            continue
+        yield p
+
+
+def check_structure(rep: Report) -> dict:
+    meta: dict = {}
+    skill_md = ROOT / "SKILL.md"
+    if not skill_md.exists():
+        rep.error("缺少 SKILL.md")
+        return meta
+
+    text = skill_md.read_text(encoding="utf-8")
+    fm, body = parse_frontmatter(text)
+    if not fm:
+        rep.error("SKILL.md 缺少 YAML frontmatter（--- 开头）")
+    else:
+        rep.good("frontmatter 可解析")
+
+    name = fm.get("name", "")
+    if not name:
+        rep.error("frontmatter 缺 name")
+    elif name != ROOT.name:
+        rep.error(f"name（{name}）与目录名（{ROOT.name}）不一致 —— 平台会拒收")
+    else:
+        rep.good(f"name 与目录名一致：{name}")
+
+    # skillhub.cn CLI 的 publish 硬性要求（实测：缺任一项直接报错退出）
+    slug = fm.get("slug", "")
+    if not slug:
+        rep.error("frontmatter 缺 slug —— skillhub.cn publish 会直接拒绝")
+    elif name and slug != name:
+        rep.warn(f"slug（{slug}）与 name（{name}）不同，检索与安装链接会不一致")
+    else:
+        rep.good(f"slug = {slug}")
+
+    dn = fm.get("displayName", "")
+    if not dn:
+        rep.error("frontmatter 缺 displayName —— skillhub.cn publish 会直接拒绝")
+    else:
+        rep.good(f"displayName = {dn}")
+
+    desc = fm.get("description", "")
+    if len(desc) < 40:
+        rep.error("description 过短（<40 字），无法被 Agent 正确触发")
+    elif len(desc) > 1200:
+        rep.warn(f"description 偏长（{len(desc)} 字），建议 200–600 字")
+    else:
+        rep.good(f"description 长度 {len(desc)} 字")
+
+    version = ""
+    m = re.search(r"^\s+version:\s*[\"']?([0-9]+\.[0-9]+\.[0-9]+)", fm_text(text), re.M)
+    if m:
+        version = m.group(1)
+        rep.good(f"version = {version}")
+    else:
+        rep.error("frontmatter 缺 metadata.version（语义化版本）")
+
+    if not fm.get("license"):
+        rep.warn("frontmatter 缺 license 字段")
+
+    if len(body.strip()) < 500:
+        rep.warn("SKILL.md 正文偏短（<500 字）")
+
+    for f in REQUIRED_FILES:
+        if (ROOT / f).exists():
+            rep.good(f"存在 {f}")
+        else:
+            rep.error(f"缺少 {f}")
+
+    # 关键内容自检
+    tp = ROOT / "references" / "task-prompt.md"
+    if tp.exists():
+        t = tp.read_text(encoding="utf-8")
+        if "【SkillHub 技能推荐简报" in t:
+            rep.good("task-prompt.md 含完整任务提示词")
+        else:
+            rep.error("task-prompt.md 似乎不是完整任务提示词（未找到标题行）")
+        if "star_rate" not in t and "收藏率" not in t:
+            rep.warn("task-prompt.md 未提及收藏率口径，易被误解")
+    else:
+        rep.warn("缺少 references/task-prompt.md（用户建定时任务需要它）")
+
+    meta["name"] = name
+    meta["version"] = version
+    meta["description"] = desc
+    return meta
+
+
+def fm_text(text: str) -> str:
+    end = text.find("\n---", 3)
+    return text[: end if end != -1 else len(text)]
+
+
+def check_template(rep: Report) -> None:
+    tpl = ROOT / "assets" / "briefing-template.html"
+    if not tpl.exists():
+        rep.warn("缺少 assets/briefing-template.html（产出一致性会变差）")
+        return
+    h = tpl.read_text(encoding="utf-8")
+    for tag in ("div", "section", "span", "code", "button"):
+        o = len(re.findall(rf"<{tag}[\s>]", h))
+        c = len(re.findall(rf"</{tag}>", h))
+        if o != c:
+            rep.error(f"模板 {tag} 标签不闭合：{o} 开 / {c} 闭")
+    if "width=device-width" not in h:
+        rep.error("模板缺少 viewport meta")
+    ext = [u for u in re.findall(r'(?:src|href)="(https?://[^"]+)"', h)]
+    if ext:
+        rep.error(f"模板含外部引用（离线会白屏）：{ext[:3]}")
+    else:
+        rep.good("模板零外链、标签闭合")
+
+
+def looks_placeholder(value: str) -> bool:
+    """skh_xxxxxxxx / skh_0000 这类文档占位符不算泄露。"""
+    body = value.split("_", 1)[1] if "_" in value else value
+    return bool(body) and set(body.lower()) <= set("x0*.-_")
+
+
+def check_secrets(rep: Report) -> None:
+    hits = 0
+    for p in iter_files(ROOT):
+        if p.suffix.lower() in {".zip", ".png", ".jpg", ".jpeg", ".webp", ".ico"}:
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        rel = p.relative_to(ROOT)
+        for pat, label in SECRET_PATTERNS:
+            for m in re.finditer(pat, text):
+                if looks_placeholder(m.group(0)):
+                    continue
+                rep.error(f"疑似密钥 {label} @ {rel}: {m.group(0)[:24]}…")
+                hits += 1
+        for pat, label in LOCAL_PATH_PATTERNS:
+            for m in re.finditer(pat, text):
+                rep.warn(f"本机路径 {label} @ {rel}: {m.group(0)}")
+                hits += 1
+    if hits == 0:
+        rep.good("未发现密钥与本机路径")
+
+
+def check_size(rep: Report) -> None:
+    files = list(iter_files(ROOT))
+    total = sum(p.stat().st_size for p in files)
+    rep.good(f"{len(files)} 个文件，合计 {total / 1024:.1f} KB")
+    if total > 900 * 1024:
+        rep.warn(f"体积偏大（{total / 1024:.0f} KB），zip 可能超 1 MB")
+    big = [p for p in files if p.stat().st_size > 200 * 1024]
+    for p in big:
+        rep.warn(f"单文件偏大：{p.relative_to(ROOT)}（{p.stat().st_size / 1024:.0f} KB）")
+
+
+def check_zip_integrity(rep: Report) -> None:
+    """若 dist 下已有 zip，校验其结构与可读性。"""
+    dist = ROOT / "dist"
+    if not dist.exists():
+        return
+    for z in sorted(dist.glob("*.zip")):
+        try:
+            with zipfile.ZipFile(z) as zf:
+                bad = zf.testzip()
+                names = zf.namelist()
+            if bad:
+                rep.error(f"{z.name} 内文件损坏：{bad}")
+                continue
+            if not any(n.endswith("SKILL.md") for n in names):
+                rep.error(f"{z.name} 内无 SKILL.md")
+            else:
+                rep.good(f"{z.name} 结构正常（{len(names)} 个文件）")
+        except zipfile.BadZipFile:
+            rep.error(f"{z.name} 不是合法 zip")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="SkillHub 技能包发布前预检")
+    ap.add_argument("--quiet", action="store_true", help="只输出结论与错误")
+    args = ap.parse_args()
+
+    print(f"预检目录：{ROOT}\n")
+    rep = Report(quiet=args.quiet)
+    check_structure(rep)
+    check_template(rep)
+    check_secrets(rep)
+    check_size(rep)
+    check_zip_integrity(rep)
+    print()
+    rep.render()
+    return 1 if rep.errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<!--
+  SkillHub 简报模板 · 单文件自包含
+  用法：复制本文件 → 替换 {{...}} 占位符 → 保存为 SkillHub推荐-YYYY-MM-DD.html
+  约束：不引入任何外部资源（CDN / 外链字体 / 外链图片），保证离线可读
+  占位符清单：{{DATE}} {{ISSUE}} {{SCAN_COUNT}} {{PAIN_COUNT}} {{NON_PAIN_COUNT}} {{FROZEN_COUNT}}
+             {{DIGEST}} {{PAIN_SECTIONS}} {{NON_PAIN_CARDS}} {{FOOTER_*}}
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkillHub 技能推荐简报 · {{DATE}}</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --text:#1c1f24; --sub:#5f6672; --line:#e6e8ec;
+    --chip:#f0f1f4; --accent:#2f6bff; --gold:#b8860b; --code-bg:#f6f7f9;
+    --p1:#e8892b; --p2:#2f6bff; --p3:#12a37a; --p4:#8358e8; --p5:#d94a6a; --p6:#3f9aa8; --non:#7a8290;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15171c; --card:#1e2128; --text:#e9ebef; --sub:#a2a9b5; --line:#2c303a;
+      --chip:#272b34; --accent:#6b93ff; --gold:#e0b64a; --code-bg:#191c22;
+      --p1:#f0a04b; --p2:#6b93ff; --p3:#2ec495; --p4:#a984ff; --p5:#f2708d; --p6:#54bccb; --non:#9aa3b1;
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;padding:0 0 40px;background:var(--bg);color:var(--text);
+    font:16px/1.72 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 16px}
+  header{position:sticky;top:0;z-index:9;background:var(--bg);padding:14px 0 10px;border-bottom:1px solid var(--line)}
+  header .wrap{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  h1{margin:0;font-size:18px;letter-spacing:.2px}
+  .date{font-size:13px;color:var(--sub);white-space:nowrap}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0 6px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .stat b{display:block;font-size:22px;line-height:1.25;font-weight:650}
+  .stat span{font-size:12.5px;color:var(--sub)}
+  .digest{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:12px;padding:12px 14px;margin:14px 0 4px;font-size:14.5px;color:var(--text)}
+  .digest strong{color:var(--accent)}
+  section{margin-top:26px}
+  h2{font-size:16.5px;margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  h2 em{font-style:normal;font-size:12.5px;color:var(--sub);font-weight:400}
+  .hint{font-size:13px;color:var(--sub);margin:2px 0 12px}
+  .pain{display:flex;align-items:center;gap:8px;margin:20px 0 10px;font-size:15px;font-weight:650}
+  .pain i{width:6px;height:18px;border-radius:3px;display:inline-block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-bottom:12px}
+  .card .top{display:flex;align-items:flex-start;gap:8px}
+  .idx{flex:0 0 auto;font-size:12px;font-weight:700;color:#fff;background:var(--non);
+    border-radius:8px;padding:2px 7px;margin-top:3px}
+  .p1 .idx{background:var(--p1)} .p2 .idx{background:var(--p2)} .p3 .idx{background:var(--p3)}
+  .p4 .idx{background:var(--p4)} .p5 .idx{background:var(--p5)} .p6 .idx{background:var(--p6)}
+  .name{font-size:17px;font-weight:650;line-height:1.4}
+  .slug{font-size:12px;color:var(--sub);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}
+  .chip{font-size:12px;background:var(--chip);color:var(--sub);border-radius:999px;padding:3px 9px}
+  .chip.hot{color:var(--gold);font-weight:600}
+  .field{margin:9px 0;font-size:14.5px}
+  .field > b{display:block;font-size:12.5px;color:var(--sub);font-weight:600;margin-bottom:1px;letter-spacing:.3px}
+  .warn{margin-top:9px;font-size:13px;color:var(--sub);background:var(--code-bg);border-radius:10px;padding:8px 10px}
+  .cmd{display:flex;align-items:center;gap:8px;margin-top:10px;background:var(--code-bg);
+    border:1px solid var(--line);border-radius:11px;padding:9px 10px}
+  .cmd code{flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12.5px;line-height:1.5;word-break:break-all;color:var(--text)}
+  .copy{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--accent);
+    font-size:12.5px;border-radius:9px;padding:5px 11px;font-weight:600;cursor:pointer}
+  .copy:active{opacity:.6}
+  .alt{font-size:12.5px;color:var(--sub);margin-top:6px}
+  footer{margin-top:28px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--line);padding-top:14px}
+  footer p{margin:5px 0}
+  .k{color:var(--text);font-weight:600}
+  @media (min-width:560px){ .stats{grid-template-columns:repeat(4,1fr)} }
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <h1>📊 SkillHub 技能推荐</h1>
+  <div class="date">{{DATE}} · 第 {{ISSUE}} 期</div>
+</div></header>
+
+<div class="wrap">
+
+  <div class="stats">
+    <div class="stat"><b>{{SCAN_COUNT}}</b><span>扫描技能（去重）</span></div>
+    <div class="stat"><b>{{PAIN_COUNT}}</b><span>痛点推荐</span></div>
+    <div class="stat"><b>{{NON_PAIN_COUNT}}</b><span>非痛点推荐</span></div>
+    <div class="stat"><b>{{FROZEN_COUNT}}</b><span>冷冻剔除</span></div>
+  </div>
+
+  <div class="digest"><strong>本期速览：</strong>{{DIGEST}}</div>
+
+  <section>
+    <h2>🎯 痛点推荐 <em>{{PAIN_COUNT}} 个</em></h2>
+    <div class="hint">全站共 <b>195,007</b> 个技能，本期扫描头部候选池（下载热榜 + 收藏榜 + 13 分类头部 + 增速候选），去重后 {{SCAN_COUNT}} 个，覆盖率约 {{COVERAGE}}。</div>
+
+    <!-- ============ 痛点分组（每组重复此块，p1..p6 轮换配色） ============ -->
+    <div class="pain p1"><i style="background:var(--p1)"></i>{{PAIN_EMOJI}} {{PAIN_NAME}}</div>
+
+    <!-- ============ 技能卡片（每张重复此块） ============ -->
+    <div class="card p1">
+      <div class="top">
+        <span class="idx">①</span>
+        <div>
+          <div class="name">{{SKILL_NAME}}</div>
+          <div class="slug">{{SKILL_SLUG}}</div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip">{{CATEGORY_ZH}}</span>
+        <span class="chip hot">收藏 {{STARS}} · 收藏率 {{STAR_RATE}}%</span>
+        <span class="chip">全站 #{{RANK}}</span>
+      </div>
+      <div class="field"><b>这是什么</b>{{WHAT_IT_IS}}</div>
+      <div class="field"><b>解决什么问题</b>{{PROBLEM_SOLVED}}</div>
+      <div class="field"><b>用在哪</b>{{USE_CASE}}</div>
+      <div class="field"><b>推荐理由</b>{{WHY}}</div>
+      <div class="warn">需 API Key：{{NEED_KEY}} ｜ 安全审核：{{SECURITY}}</div>
+      <div class="cmd"><code>skillhub install {{SKILL_SLUG}} --dir ~/.workbuddy/skills/</code><button class="copy">复制</button></div>
+      <div class="alt">或对话安装：「根据 SkillHub 安装 {{SKILL_NAME}}（技能ID：{{SKILL_SLUG}}）」</div>
+    </div>
+    <!-- ============ 卡片结束 ============ -->
+    <!-- ============ 痛点分组结束 ============ -->
+
+  </section>
+
+  <section>
+    <h2>🧩 非痛点推荐 <em>5 个 · 跨 5 个领域</em></h2>
+    <div class="hint">不命中你的痛点，但收藏数高、口碑好，且来自 5 个不同板块 —— 用来扩展视野。</div>
+
+    <!-- 卡片结构同痛点推荐，改用 class="card"（配色为中性灰） -->
+  </section>
+
+  <footer>
+    <p><span class="k">生成时间</span>：{{FOOTER_TIME}}</p>
+    <p><span class="k">数据来源</span>：{{FOOTER_SOURCE}}</p>
+    <p><span class="k">推荐门槛</span>：{{FOOTER_THRESHOLD}}</p>
+    <p><span class="k">本期变化</span>：{{FOOTER_CHANGES}}</p>
+    <p><span class="k">冷冻状态</span>：{{FOOTER_FREEZE}}</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.copy');
+    if (!btn) return;
+    var code = btn.parentElement.querySelector('code');
+    var text = code ? code.textContent : '';
+    function done() {
+      var old = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(function () { btn.textContent = old; }, 1400);
+    }
+    function fallback() {
+      // 剪贴板 API 不可用（部分 WebView / 非安全上下文）时选中文本，提示长按
+      try {
+        var r = document.createRange();
+        r.selectNodeContents(code);
+        var s = window.getSelection();
+        s.removeAllRanges();
+        s.addRange(r);
+      } catch (_) {}
+      btn.textContent = '长按复制';
+      setTimeout(function () { btn.textContent = '复制'; }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  });
+})();
+</script>
+</body>
+</html>

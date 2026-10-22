@@ -1,0 +1,130 @@
+# skillhub-recommender
+
+> 从 SkillHub 的 19 万个技能里，按你的痛点挑出真正值得装的那几个。
+
+一个 Agent Skill。装给任意支持 SKILL.md 的助手（WorkBuddy / Claude Code / Cursor / Codex / Qwen / OpenClaw …），它就能定期给你出一份技能简报：每条痛点 3 个推荐 + 5 个跨领域补充，输出为手机上能读完的单文件 HTML。
+
+## 为什么不是「按下载量排行」
+
+因为下载量会骗人。
+
+| 现象 | 数据 |
+|---|---|
+| 下载榜 Top200 的收藏率中位数 | **0.03%** |
+| 某编程类技能 | 下载 381 万，收藏 **16** |
+| 下载榜 Top100 ∩ 收藏榜 Top100 重叠 | **仅 38 个** |
+
+下载量含企业预装与批量分发，前排大量是"被装上了但没人用"的技能；而真正收藏率高、口碑好的技能，下载量常常只有几万，永远爬不进下载榜。
+
+本 Skill 以 **收藏数（stars）** 为主信号，四路抓取（下载榜 + 收藏榜 + 13 分类头部 + 增速候选），先从 19.5 万里筛出 240–450 个候选，再按你的痛点挑。
+
+## 三个不那么显然的设计
+
+**1. 痛点不写在提示词里，存在云端文档，用对话管理**
+
+```
+查看我的痛点
+增加一个痛点：财务报表分析
+把第 2 条改成：自媒体选题与文案
+删除第 3 条
+```
+
+第一次运行它会问你要关注什么方向（附 5 大类样例，不知道怎么说也能直接说「先来一份通用的」）。
+
+**2. 21 天冷冻去重**
+
+推荐过的技能 3 周内不再出现。满 21 天且仍居候选池收藏数前 20% 才可复审再推，推后重新冷冻。榜单不会每期都是同一批脸。
+
+**3. 增速候选池**
+
+榜单按累计值排序，头部很稳、长尾爬得极慢，所以"名次还不高但正在蹿升"的技能只能靠做差捞出来：与上期快照比，收藏数增量 ≥ 20 或增长率 ≥ 30% 的直接进池。
+
+## 安装
+
+```bash
+skillhub install skillhub-recommender --dir ~/.workbuddy/skills/
+```
+
+`--dir` 换成你所用 Agent 的 skills 目录：
+
+| Agent | 目录 |
+|---|---|
+| WorkBuddy | `~/.workbuddy/skills/` |
+| Claude Code | `~/.claude/skills/` |
+| Cursor | `~/.cursor/skills/` |
+| Codex | `~/.codex/skills/` |
+| QoderWork | `~/.qoderwork/skills/` |
+
+或者直接把本仓库目录拷进 skills 目录，重启 Agent 即可。
+
+## 两种用法
+
+### A. 装成定时任务（推荐）
+
+只有定时任务才能持续产出。把 [`references/task-prompt.md`](references/task-prompt.md) 的全文粘进你所用 Agent 的定时任务内容里，频率自定（常见：每周一、周四 12:00）。
+
+那段提示词是**完整自包含**的，不依赖本仓库文件，单独发给别人也能跑。
+
+> 首次触发不会出简报，而是先问你的痛点 —— 云沙箱无人值守，问不了当场，这是设计如此。
+
+### B. 会话内直接跑一期
+
+跟 Agent 说「用 skillhub-recommender 给我出一期技能简报」，它按 `SKILL.md` 的工作流抓数据、挑技能、产出 HTML。
+
+## 产出长什么样
+
+```
+① 简报头部    日期 + 扫描概况
+② 痛点推荐    每条痛点 3 张卡片
+③ 非痛点推荐  5 张，跨 5 个领域
+④ 页脚        数据范围 / 门槛口径 / 本期变化 / 冷冻状态
+```
+
+每张卡片：名称 + 技能ID + 分类 + 收藏数 + 收藏率 + 全站排名 → 这是什么 → 解决什么问题 → 用在哪 → 推荐理由 → 风险提示（需 API Key / 安全审核）→ 可复制的安装命令。
+
+模板在 [`assets/briefing-template.html`](assets/briefing-template.html)，单文件、零外链、深浅双主题。
+
+## 目录
+
+```
+skillhub-recommender/
+├── SKILL.md                        技能主体（Agent 加载的入口）
+├── README.md
+├── CHANGELOG.md
+├── LICENSE
+├── references/
+│   ├── task-prompt.md              可直接粘贴的定时任务提示词
+│   ├── api-reference.md            SkillHub API 端点与字段口径
+│   ├── output-spec.md              HTML 简报规范
+│   └── publishing.md               三平台发布指引
+├── assets/
+│   └── briefing-template.html      简报模板
+└── scripts/
+    ├── validate.py                 发布前预检
+    ├── build.py                    打包 dist zip
+    └── publish.py                  一键发布三平台
+```
+
+## 发布（维护者）
+
+一份源，三处分发：
+
+```bash
+python scripts/validate.py                          # 预检
+python scripts/publish.py --dry-run                 # 演练，不发请求
+python scripts/publish.py --bump patch --changelog "修正收藏率口径"
+python scripts/publish.py --only github             # 只推 GitHub
+```
+
+三条通道的细节见 [`references/publishing.md`](references/publishing.md)。Token 走环境变量，不写进文件。
+
+## 已知的坑
+
+- **收藏率字段已经是百分数**：`0.2973` 就是 `0.30%`。乘 100 会写出「收藏率 29.73%」这种离谱数字。
+- **覆盖面只有 0.1%**：全站 19.5 万，每期扫 240–450 个头部。简报页脚必须如实标注覆盖率，不能让人以为扫了全站。
+- **云端文档写不进去时**，冷冻去重会失效。此时简报页脚必须写「本期冷冻未生效」——静默失效比没有功能更糟。
+- **任务改不了自己的排期**：频率由 Agent 侧管，Skill 只能记录用户的期望值，不能声称"已改好"。
+
+## License
+
+MIT
