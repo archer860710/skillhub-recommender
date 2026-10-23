@@ -219,7 +219,7 @@ def publish_club(version: str, note: str, dry: bool) -> str:
         return "ok"
     if code != 0:
         print("  ! 发布失败。首次使用需先登录：npx -y @skill-hub/cli login")
-        print("    若提示 'Not a skill project'，先跑：npx -y @skill-hub/cli init -n skillhub-recommender")
+        print(f"    若提示 'Not a skill project'，先跑：npx -y @skill-hub/cli init -n {ROOT.name}")
         return "fail"
     print("  ✓ 已发布 skillhub.club（评级需等平台审核）")
     return "ok"

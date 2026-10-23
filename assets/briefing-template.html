@@ -4,8 +4,9 @@
   用法：复制本文件 → 替换 {{...}} 占位符 → 保存为 SkillHub推荐-YYYY-MM-DD.html
   约束：不引入任何外部资源（CDN / 外链字体 / 外链图片），保证离线可读
   占位符清单：{{DATE}} {{ISSUE}} {{SCAN_COUNT}} {{PAIN_COUNT}} {{CROSS_COUNT}} {{FROZEN_COUNT}}
+             {{TOTAL_SKILLS}} {{CATEGORY_COUNT}} {{COVERAGE}}
              {{DIGEST}} {{PAIN_SECTIONS}} {{CROSS_CARDS}} {{CROSS_DOMAIN_TEXT}} {{CROSS_HINT}} {{FOOTER_*}}
-  注意：卡片张数由《SkillHub推荐偏好》决定，不要沿用模板里的样例数字
+  注意：卡片张数由《SkillHub推荐偏好》决定，全站总量与分类数每次抓取后填真实值，都不要沿用样例数字
 -->
 <html lang="zh-CN">
 <head>
@@ -97,7 +98,7 @@
 
   <section>
     <h2>🎯 痛点推荐 <em>{{PAIN_COUNT}} 个</em></h2>
-    <div class="hint">全站共 <b>195,007</b> 个技能，本期扫描头部候选池（下载热榜 + 收藏榜 + 13 分类头部 + 增速候选），去重后 {{SCAN_COUNT}} 个，覆盖率约 {{COVERAGE}}。</div>
+    <div class="hint">全站共 <b>{{TOTAL_SKILLS}}</b> 个技能，本期扫描头部候选池（下载热榜 + 收藏榜 + {{CATEGORY_COUNT}} 个分类头部 + 增速候选），去重后 {{SCAN_COUNT}} 个，覆盖率约 {{COVERAGE}}。</div>
 
     <!-- ============ 痛点分组（每组重复此块，p1..p6 轮换配色） ============ -->
     <div class="pain p1"><i style="background:var(--p1)"></i>{{PAIN_EMOJI}} {{PAIN_NAME}}</div>

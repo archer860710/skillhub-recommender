@@ -82,6 +82,25 @@ skillhub install skillhub-recommender --dir ~/.workbuddy/skills/
 
 或者直接把本仓库目录拷进 skills 目录，重启 Agent 即可。
 
+**先验证装对了没有**：照 [`references/test-prompts.md`](references/test-prompts.md) 里的 5 句话问一遍。重点是看它在你要痛点之前，会不会自己编几条顶上 —— 会的话说明装的是旧版。
+
+**升级**：
+
+```bash
+skillhub install skillhub-recommender --dir <你的目录>   # 覆盖安装即可
+# 或用 git：
+git -C <你的目录>/skillhub-recommender pull
+```
+
+升级只替换 `SKILL.md` 和 `references/`，不碰你已有的痛点清单与偏好文档。
+
+## 不适合拿它做什么
+
+- **搜单个技能**：直接 `skillhub search <关键词>`，比跑一期简报快得多
+- **查某个技能的详情**：`https://skillhub.cn/skills/<slug>`，或看接口返回
+- **装技能**：`skillhub install <slug>`，简报里只给命令，不动你的环境
+- **找遍全站**：每期只扫 240–450 个头部，覆盖率约 0.1%。它保证「推的靠谱」，不保证「不漏」
+
 ## 两种用法
 
 ### A. 装成定时任务（推荐）
@@ -119,6 +138,7 @@ skillhub-recommender/
 ├── LICENSE
 ├── references/
 │   ├── task-prompt.md              可直接粘贴的定时任务提示词
+│   ├── test-prompts.md             装好后的验证提问清单
 │   ├── api-reference.md            SkillHub API 端点与字段口径
 │   ├── output-spec.md              HTML 简报规范
 │   └── publishing.md               三平台发布指引

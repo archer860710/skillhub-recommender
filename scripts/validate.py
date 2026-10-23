@@ -225,6 +225,16 @@ def check_structure(rep: Report) -> dict:
     else:
         rep.warn("SKILL.md 未展示可配置口径表，用户不知道能改什么")
 
+    tp_test = ROOT / "references" / "test-prompts.md"
+    if not tp_test.exists():
+        rep.warn("缺少 references/test-prompts.md（别人装完不知道怎么验证）")
+    else:
+        t = tp_test.read_text(encoding="utf-8")
+        if "不应触发" in t and "不合格" in t:
+            rep.good("test-prompts.md 覆盖正常 / 边界 / 不应触发")
+        else:
+            rep.warn("test-prompts.md 缺少边界或反例说明")
+
     meta["name"] = name
     meta["version"] = version
     meta["description"] = desc

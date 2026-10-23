@@ -7,13 +7,13 @@ description: >
   真正值得安装的 Skill（痛点定向 + 跨领域补充），产出手机端可读的单文件 HTML 简报。用收藏数（stars）
   而非下载量作为质量信号，内置冷冻去重与增速候选池，避免每期重复推荐同一批。
   推荐条数、跨领域补充条数、冷冻周期、收藏数门槛等口径全部由用户在首次运行时自己定，不写死在技能里。
-  在以下场景使用：用户想要「定期收到好用的 Skill 推荐 / 技能简报 / SkillHub 有什么值得装的」；
-  要搭一个技能推荐类定时任务；要管理自己的推荐偏好（痛点清单、每期推几条）；或直接要一期推荐结果。
+  在以下场景使用：用户想要「定期收到好用的 Skill 推荐 / 技能简报 / 装什么 Skill 好 / SkillHub 上有什么
+  值得装的」；要搭一个技能推荐类定时任务；要管理自己的推荐偏好（痛点清单、每期推几条）；或直接要一期推荐结果。
   不适用于：搜索单个技能（直接用 skillhub search）、查看某个技能详情、安装技能。
 license: MIT
 metadata:
   author: archer860710
-  version: "1.1.0"
+  version: "1.1.1"
   repository: https://github.com/archer860710/skillhub-recommender
 ---
 
@@ -100,6 +100,7 @@ metadata:
 | 路径 | 用途 |
 |---|---|
 | `references/task-prompt.md` | 可直接粘贴的定时任务提示词（含首次引导话术 + 配置管理），给别人用就发这个 |
+| `references/test-prompts.md` | 装好后的 6 组验证提问：该问的对不对、该拒的拒没拒 |
 | `references/api-reference.md` | SkillHub API 端点、字段口径、分类 key、已知坑 |
 | `references/output-spec.md` | HTML 简报规范：自包含、双主题、卡片结构、命令条 |
 | `references/publishing.md` | 发布到 GitHub / skillhub.cn / skillhub.club 三条通道 |
