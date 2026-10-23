@@ -41,6 +41,15 @@ LOCAL_PATH_PATTERNS = [
 # 这四项在就说明「条数/周期由用户定」的能力还在；少了任意一项，多半是又被写死了
 PREF_ANCHORS = ["《SkillHub推荐偏好》", "每条痛点推荐数", "跨领域补充数", "冷冻期"]
 
+# 痛点必须由用户本人给，这些是"工具作者替你定好"的痕迹，出现即视为回归
+PRESET_PAIN_BLACKLIST = [
+    "办公自动化 / 内容创作 / 数据分析 / 生活提效",
+    "痛点用「办公自动化",
+    "先来一份通用的」，痛点",
+]
+
+PAIN_ANCHORS = ["不在提示词里固化任何具体痛点", "全领域均衡"]
+
 
 class Report:
     def __init__(self, quiet: bool = False) -> None:
@@ -203,6 +212,11 @@ def check_structure(rep: Report) -> dict:
             rep.error(f"task-prompt.md 缺少口径可配置锚点：{missing} —— 会被退回成把条数写死")
         else:
             rep.good("task-prompt.md 保留口径可配置（偏好文档驱动）")
+        missing_pain = [k for k in PAIN_ANCHORS if k not in t]
+        if missing_pain:
+            rep.error(f"task-prompt.md 缺少痛点必须由用户提供的锚点：{missing_pain}")
+        else:
+            rep.good("task-prompt.md 要求痛点由用户提供，不代填")
     else:
         rep.warn("缺少 references/task-prompt.md（用户建定时任务需要它）")
 
@@ -272,6 +286,26 @@ def check_secrets(rep: Report) -> None:
         rep.good("未发现密钥与本机路径")
 
 
+def check_preset_pains(rep: Report) -> None:
+    """痛点只能来自用户，文档里出现"作者预设清单"就是回归。"""
+    hits = 0
+    for p in iter_files(ROOT):
+        if p.suffix.lower() not in {".md", ".html"}:
+            continue
+        if p.resolve() == Path(__file__).resolve():
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for bad in PRESET_PAIN_BLACKLIST:
+            if bad in text:
+                rep.error(f"发现预设痛点清单 @ {p.relative_to(ROOT)}：{bad}")
+                hits += 1
+    if hits == 0:
+        rep.good("未发现预设痛点清单（痛点由用户提供）")
+
+
 def check_size(rep: Report) -> None:
     files = list(iter_files(ROOT))
     total = sum(p.stat().st_size for p in files)
@@ -313,6 +347,7 @@ def main() -> int:
     rep = Report(quiet=args.quiet)
     check_structure(rep)
     check_template(rep)
+    check_preset_pains(rep)
     check_secrets(rep)
     check_size(rep)
     check_zip_integrity(rep)
