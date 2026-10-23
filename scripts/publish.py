@@ -254,8 +254,16 @@ def publish_club(version: str, note: str, dry: bool) -> str:
     base = [npx, "-y", "@skill-hub/cli"]
     payload = ROOT if dry else stage_payload(lean=True)
     # -f 必须带：不带会停在确认提示上等输入，在非交互环境里表现为无限挂起
-    run(base + ["push", "--create", "-f", "-m", f"v{version} — {note}"],
-        dry=dry, check=False, env=env, cwd=payload)
+    code, out = run(base + ["push", "--create", "-f", "-m", f"v{version} — {note}"],
+                    dry=dry, check=False, env=env, cwd=payload)
+    if not dry and "already exists" in (out or ""):
+        print("  ! 远端已有同名技能，但本地没有它的 skill_id，无法覆盖更新。")
+        print("    club 靠 .skillhub.json 里的 skill_id 定位远端技能；缺了它只能新建。")
+        print("    处理办法（任选）：")
+        print("      a) 到 skillhub.club 技能页取出 skill id，填进项目根的 .skillhub.json 后重试")
+        print("      b) 在网页上删掉旧技能，再跑到这一步让它重建（会重新生成 skill_id）")
+        print("    注意：skill_id 只在首次 create 时写入 .skillhub.json，别让暂存目录把它一起删了。")
+        return "fail"
     code, _ = run(base + ["publish", "-y"], dry=dry, check=False, env=env, cwd=payload)
     if dry:
         print("  · dry-run：未实际发布（需先 npx @skill-hub/cli login 完成 OAuth）")

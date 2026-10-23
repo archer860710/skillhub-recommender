@@ -2,6 +2,15 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
+## [1.1.5] - 2026-10-23
+
+无使用者可见的功能变化，只修发布链路。
+
+### 修正
+
+- **club 第二次发版推不上去**：CLI 靠 `.skillhub.json` 里的 `skill_id`（UUID）定位远端技能，而这个字段是首次 `push --create` 成功后才写进去的。此前发布用的是临时暂存目录，发完即删，`skill_id` 随之丢失，再推只能"新建"，于是撞 `A skill with this name already exists`。`--link` 只认 UUID，传 slug 或短前缀一律 404，救不回来。已在 `publishing.md` 写明「首次 create 成功后立刻把 `.skillhub.json` 抄回项目根」，`publish.py` 遇到该错误时给出可操作提示而不是误报"需先登录"
+- club 精简包不再携带过期的本地配置
+
 ## [1.1.4] - 2026-10-23
 
 首次真实发布到三个平台，把踩到的坑写回文档与脚本。

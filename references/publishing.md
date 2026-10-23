@@ -126,7 +126,7 @@ npx -y @skill-hub/cli push --create -f -m "v1.0.0 初始版本"
 npx -y @skill-hub/cli publish -y
 ```
 
-**两个硬约束（都是实测撞出来的）**
+**三个硬约束（都是实测撞出来的）**
 
 **① 总量上限 100 KB。**
 
@@ -136,7 +136,32 @@ npx -y @skill-hub/cli publish -y
 
 完整包 124 KB，超了。`publish.py` 因此给 club 单独准备精简包 `dist/_stage_lean/`：去掉 `scripts/`（三个作者侧工具）和 `CHANGELOG.md`，**文档一份不少**，压到约 92 KB。将来新增文档前先算体积，别越过 100 KB。
 
-**② `push` 必须带 `-f`。** 不带的话 CLI 会停在"是否创建"的确认提示上，在有终端时人能按回车，在脚本/云端就是静默挂起十分钟。这个坑不会报错，只会卡住。
+**② `push` 必须带 `-f`。** 不带的话 CLI 会停在"是否创建"的确认提示上，在有终端时人能按回车，在脚本/云端就是静默挂起十分钟。这个坑不会报错，只会卡住 —— 也是最难排查的一种失败。
+
+**③ 更新已发布的技能需要 `.skillhub.json` 里有 `skill_id`。** 这是最容易吃哑巴亏的一条。
+
+`.skillhub.json` 的正确形态（`skill_id` 由 CLI 在**首次 `push --create` 成功后自动写入**）：
+
+```json
+{
+  "name": "skillhub-recommender",
+  "description": "…",
+  "category": "productivity",
+  "visibility": "public",
+  "skill_id": "ac1b2a25-8266-4b26-b4f5-acda07cfb8d7",
+  "slug": "7b15c694/skillhub-recommender"
+}
+```
+
+没有 `skill_id` 时，`push` 只能按"新建"处理，于是报：
+
+```
+✗ A skill with this name already exists
+```
+
+**而 `--link` 只认 UUID**，传 slug（`7b15c694/skillhub-recommender`）或短前缀（`7b15c694`）都会 404，救不回来。
+
+所以：**首次 `push --create` 成功后，立刻把 `.skillhub.json` 复制回项目根目录并提交到本地（不要入库，`.gitignore` 已排除）。** 本项目就因为发布时用临时暂存目录、发完就把目录删了，把 `skill_id` 一起丢了，导致第二次发版推不上去 —— 只能靠网页上删掉旧技能重建。
 
 补充：
 
@@ -180,6 +205,7 @@ Windows PowerShell：`$env:SKILLHUB_CN_TOKEN = "skh_xxxxxxxx"`
 |---|---|---|
 | `Error: 请求失败 (400): 不允许的文件类型: .gitattributes` | skillhub.cn 扩展名白名单，无扩展名/点开头的文件被拒 | 发 `dist/_stage`，不要发仓库根目录 |
 | `Error: 请求失败 (400): 不允许的文件类型: LICENSE` | 同上，`LICENSE` 没有扩展名 | 从上传包里去掉，只留在 GitHub |
+| `✗ A skill with this name already exists` | 本地 `.skillhub.json` 缺 `skill_id`，无法定位远端同名技能 | 从网页取回 skill id 填入；或删掉旧技能重建 |
 | `✗ Total size (124KB) exceeds limit (100KB)` | club 总量上限 100 KB | 用精简包（去掉 `scripts/` 和 `CHANGELOG.md`） |
 | push 卡住十分钟无任何输出 | 没带 `-f`，停在确认提示上等输入 | `push --create -f` |
 | `Error: SKILL.md 缺少 slug` | skillhub.cn 要求 slug 字段 | frontmatter 加 `slug: <name>` |
