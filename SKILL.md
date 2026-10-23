@@ -14,7 +14,7 @@ description: >
 license: MIT
 metadata:
   author: archer860710
-  version: "1.1.1"
+  version: "1.1.2"
   repository: https://github.com/archer860710/skillhub-recommender
 ---
 
@@ -62,12 +62,13 @@ metadata:
 5. **输出** —— 单文件 HTML（规范见 `references/output-spec.md`）；对话里只给 200 字摘要
 6. **回写** —— 更新推荐历史、候选池快照
 
-## 三条铁律
+## 四条铁律
 
 | 规则 | 内容 |
 |---|---|
 | **质量看收藏数** | `stars` ≥ 门槛（默认 50）优先。低于门槛只在痛点无可替代时推，且卡片必须标注「热度偏弱」。禁止用「下载量高、收藏数个位数」的技能充数 |
-| **收藏率字段已是百分数** | `star_rate = 0.2973` 表示 **0.30%**，不是 29.73%。全站量级 0.1%–0.5%，> 0.2% 已属优秀。**不要自己乘 100** |
+| **收藏率要自己算** | 列表接口**不返回** `star_rate`，必须 `stars ÷ downloads × 100`。算出来 `0.31%` 是对的，`0.0031%` 或 `31%` 都是差了 100 倍。全站量级 0.1%–0.5%，> 0.2% 已属优秀 |
+| **详情只查入围项** | `securityReports` 只在详情接口，且只对最终定下的十余个查。对 400 个候选逐个查会被限流 |
 | **冷冻去重** | 推荐过的技能默认 21 天内不再出现（天数取偏好，可设 0 关闭）。满期且仍居候选池收藏数前 20%（或收藏率前 25%）才可再推，推后重新冷冻 |
 
 ## 输出形态
@@ -102,6 +103,7 @@ metadata:
 |---|---|
 | `references/task-prompt.md` | 可直接粘贴的定时任务提示词（含首次引导话术 + 配置管理），给别人用就发这个 |
 | `references/test-prompts.md` | 装好后的 6 组验证提问：该问的对不对、该拒的拒没拒 |
+| `references/walkthrough.md` | 新用户从装好到第二期的完整交互推演，含 4 个已知卡点 |
 | `references/api-reference.md` | SkillHub API 端点、字段口径、分类 key、已知坑 |
 | `references/output-spec.md` | HTML 简报规范：自包含、双主题、卡片结构、命令条 |
 | `references/publishing.md` | 发布到 GitHub / skillhub.cn / skillhub.club 三条通道 |

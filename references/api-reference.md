@@ -40,26 +40,43 @@ GET https://api.skillhub.cn/api/skills
 
 返回：
 
+列表项的真实字段（2026-10 实测，`data.skills[]`）：
+
 ```json
 {
   "data": {
-    "total": 195007,
+    "total": 202661,
     "skills": [
       {
-        "name": "Nano Banana Pro",
-        "slug": "nano-banana-pro",
-        "category": "design-media",
-        "downloads": 172838,
-        "stars": 473,
-        "star_rate": 0.2973,
-        "rank": 87,
-        "description_zh": "...",
-        "author": "steipete"
+        "name": "self-improving agent",
+        "slug": "self-improving-agent",
+        "category": "ai-agent",
+        "downloads": 1482610,
+        "installs": 86140,
+        "stars": 4536,
+        "labels": { "requires_api_key": "false" },
+        "description_zh": "记录自身发现以实现自我改进的技能",
+        "namespace": "...",
+        "ownerName": "...",
+        "homepage": "...",
+        "verified": false,
+        "version": "..."
       }
     ]
   }
 }
 ```
+
+**列表里没有的东西（重要）**
+
+| 你以为有 | 实际 | 怎么办 |
+|---|---|---|
+| `star_rate` | ❌ **列表不返回** | 自己算，见下方口径 |
+| `rank`（全站排名） | ❌ 没有 | 用翻页序号近似，或在简报里写「榜内第 N」而不是「全站第 N」 |
+| `author` | ❌ 叫 `ownerName` / `namespace` | 用这两个 |
+| `securityReports` | ❌ 只在详情接口 | 见「详情接口」一节，只对入围项查 |
+
+`total` 是字符串还是数字、具体值都在变 —— 只取 `data.total` 的当前值，不要照抄示例里的 202661。
 
 ## 分类
 
@@ -94,6 +111,14 @@ GET https://api.skillhub.cn/api/skills
 
 `GET https://api.skillhub.cn/api/v1/skills/{slug}`
 
+**调用时机：不是对全池查。** 候选池 240–450 个，每个查一次就是几百次请求，大概率被限流、也白白拖慢任务。正确顺序是：
+
+```
+列表接口（4 路抓取）→ 去重 / 冷冻 / 收藏数门槛 → 定出入围的十余个 → 只对这十余个查详情
+```
+
+详情这一步只解决两件事：安全审核结果、`requires_api_key`、中文简介。前两步用列表数据就够。
+
 推荐前需要的字段都在这里：
 
 ```json
@@ -123,14 +148,40 @@ GET https://api.skillhub.cn/api/skills
 
 ## 字段口径（最容易搞错的地方）
 
-### `star_rate` 已经是百分数
+### 收藏率要自己算（列表不返回 `star_rate`）
 
-`0.2973` = **0.30%**，不是 29.73%。
+列表接口只有 `stars` 和 `downloads`，**必须自己算**：
 
-- 全站量级：**0.1% – 0.5%**
-- > 0.2% 已属优秀；池内最高约 0.44%
-- **不要自己乘 100**，否则会写出"收藏率 29.73%"这种离谱数字
-- 同一份数据里，早期版本曾误乘 100，导致"收藏率 ≥ 10%"的门槛把全站技能全筛掉 —— 这是本 Skill 最重要的历史坑
+```
+收藏率(%) = stars ÷ downloads × 100，保留两位小数
+```
+
+实测算例（2026-10 收藏榜前排）：
+
+| 技能 | stars | downloads | 收藏率 |
+|---|---|---|---|
+| self-improving agent | 4,536 | 1,482,610 | **0.31%** |
+| self-improving | 1,618 | 580,490 | **0.28%** |
+| find-skills | 1,800 | 1,376,836 | **0.13%** |
+| humanizer | 1,113 | 435,959 | **0.26%** |
+| gog | 945 | 220,160 | **0.43%** |
+
+注意最后一行：`gog` 收藏数不到 `self-improving agent` 的四分之一，但收藏率高 39%，`downloads` 只有它的 15% —— 这正是不看收藏率会漏掉的类型。
+
+### 两个坑
+
+**坑 1：把收藏率当小数写。** `4536 ÷ 1482610 = 0.00306`，这个数直接乘 100 才是 0.31%。写成 0.00306% 就是差了 100 倍。判定标准：**全站量级 0.1%–0.5%，算出 0.00x% 或 30%+ 都是错的。**
+
+**坑 2：以为有现成的 `star_rate` 字段可读。** 早期版本按「字段已是百分数，不要乘 100」处理 —— 那条规则针对的是详情接口历史上的返回，列表里压根没这个字段。读不到就老老实实算，不要因为找不到字段就去猜。
+
+历史记录：早期版本曾把 0.2973 当成 29.73% 写进简报（虚高 100 倍），也曾用「收藏率 ≥ 10%」当门槛把全站技能全筛掉。两次都是同一个方向的错。
+
+### `downloads` 与 `installs` 的区别
+
+- `downloads` 累计下载次数，含镜像、批量分发、爬虫，虚高
+- `installs` 真实安装数，量级小得多（典型 `downloads` 148 万 → `installs` 8.6 万）
+- **判断「企业预装充数」时用 `downloads ÷ installs` 的比值**：比值畸形高（>50）多半不是真人用的
+- 主排序信号仍然是 `stars`，`installs` 只作旁证，不要拿它替代门槛
 
 ### `downloads` 会骗人
 
