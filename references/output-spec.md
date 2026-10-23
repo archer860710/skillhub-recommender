@@ -41,9 +41,11 @@ footer            生成时间 / 数据来源 / 推荐门槛 / 本期变化 / �
 用在哪          （典型场景）
 推荐理由        （≤100 字）
 风险提示        （需 API Key：是/否 ｜ 安全审核：benign / 未审核）
-命令条          skillhub install <slug> --dir ~/.workbuddy/skills/  [复制]
+命令条          skillhub install <slug> --dir <用户 skills 目录>  [复制]
 对话安装        或对话安装：「根据 SkillHub 安装 <名>（技能ID：<slug>）」
 ```
+
+`--dir` 不许默认成某个产品的路径（比如 `~/.workbuddy/skills/`）。按用户实际所用 Agent 填；不确定就用对话安装那条，让 Agent 自己找目录。
 
 `收藏率` 直接显示接口 `star_rate` 的原值（`0.30%` 这种），**不要乘 100**。
 

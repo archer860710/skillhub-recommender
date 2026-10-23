@@ -67,7 +67,7 @@
 ## 安装
 
 ```bash
-skillhub install skillhub-recommender --dir ~/.workbuddy/skills/
+skillhub install skillhub-recommender --dir <你的 skills 目录>
 ```
 
 `--dir` 换成你所用 Agent 的 skills 目录：
@@ -80,7 +80,7 @@ skillhub install skillhub-recommender --dir ~/.workbuddy/skills/
 | Codex       | `~/.codex/skills/`     |
 | QoderWork   | `~/.qoderwork/skills/` |
 
-或者直接把本仓库目录拷进 skills 目录，重启 Agent 即可。
+或者直接把本仓库目录拷进 skills 目录，重启 Agent 即可。不想找目录的话，也可以直接对 Agent 说「根据 SkillHub 安装 skillhub-recommender」，让它自己放。
 
 **先验证装对了没有**：照 [`references/test-prompts.md`](references/test-prompts.md) 里的 5 句话问一遍。重点是看它在你要痛点之前，会不会自己编几条顶上 —— 会的话说明装的是旧版。
 
@@ -105,7 +105,7 @@ git -C <你的目录>/skillhub-recommender pull
 
 ### A. 装成定时任务（推荐）
 
-只有定时任务才能持续产出。把 [`references/task-prompt.md`](references/task-prompt.md) 的全文粘进你所用 Agent 的定时任务内容里，频率自定（常见：每周一、周四 12:00）。
+只有定时任务才能持续产出。把 [`references/task-prompt.md`](references/task-prompt.md) 的全文粘进你所用 Agent 的定时任务内容里，频率自定（每天、每周一次、每周两次都行）。
 
 那段提示词是**完整自包含**的，不依赖本仓库文件，单独发给别人也能跑。
 

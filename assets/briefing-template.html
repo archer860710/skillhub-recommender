@@ -6,7 +6,8 @@
   占位符清单：{{DATE}} {{ISSUE}} {{SCAN_COUNT}} {{PAIN_COUNT}} {{CROSS_COUNT}} {{FROZEN_COUNT}}
              {{TOTAL_SKILLS}} {{CATEGORY_COUNT}} {{COVERAGE}}
              {{DIGEST}} {{PAIN_SECTIONS}} {{CROSS_CARDS}} {{CROSS_DOMAIN_TEXT}} {{CROSS_HINT}} {{FOOTER_*}}
-  注意：卡片张数由《SkillHub推荐偏好》决定，全站总量与分类数每次抓取后填真实值，都不要沿用样例数字
+  注意：卡片张数由《SkillHub推荐偏好》决定；全站总量与分类数每次抓取后填真实值；
+        {{INSTALL_DIR}} 按用户实际 Agent 填，别默认某个产品的目录
 -->
 <html lang="zh-CN">
 <head>
@@ -122,7 +123,7 @@
       <div class="field"><b>用在哪</b>{{USE_CASE}}</div>
       <div class="field"><b>推荐理由</b>{{WHY}}</div>
       <div class="warn">需 API Key：{{NEED_KEY}} ｜ 安全审核：{{SECURITY}}</div>
-      <div class="cmd"><code>skillhub install {{SKILL_SLUG}} --dir ~/.workbuddy/skills/</code><button class="copy">复制</button></div>
+      <div class="cmd"><code>skillhub install {{SKILL_SLUG}} --dir {{INSTALL_DIR}}</code><button class="copy">复制</button></div>
       <div class="alt">或对话安装：「根据 SkillHub 安装 {{SKILL_NAME}}（技能ID：{{SKILL_SLUG}}）」</div>
     </div>
     <!-- ============ 卡片结束 ============ -->

@@ -188,6 +188,10 @@ def check_structure(rep: Report) -> dict:
     if not fm.get("license"):
         rep.warn("frontmatter 缺 license 字段")
 
+    repo = re.search(r"^\s+repository:\s*(\S+)", fm_text(text), re.M)
+    if repo:
+        rep.warn(f"frontmatter 声明了仓库地址 {repo.group(1)} —— 发布前确认它能打开，404 的链接比没有更伤可信度")
+
     if len(body.strip()) < 500:
         rep.warn("SKILL.md 正文偏短（<500 字）")
 
@@ -259,6 +263,8 @@ def check_template(rep: Report) -> None:
             rep.error(f"模板 {tag} 标签不闭合：{o} 开 / {c} 闭")
     if "width=device-width" not in h:
         rep.error("模板缺少 viewport meta")
+    if "~/.workbuddy" in h or "/Users/" in h:
+        rep.error("模板里写死了作者环境的安装路径 —— 改用 {{INSTALL_DIR}}")
     ext = [u for u in re.findall(r'(?:src|href)="(https?://[^"]+)"', h)]
     if ext:
         rep.error(f"模板含外部引用（离线会白屏）：{ext[:3]}")
