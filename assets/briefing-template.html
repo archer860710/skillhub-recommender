@@ -3,8 +3,9 @@
   SkillHub 简报模板 · 单文件自包含
   用法：复制本文件 → 替换 {{...}} 占位符 → 保存为 SkillHub推荐-YYYY-MM-DD.html
   约束：不引入任何外部资源（CDN / 外链字体 / 外链图片），保证离线可读
-  占位符清单：{{DATE}} {{ISSUE}} {{SCAN_COUNT}} {{PAIN_COUNT}} {{NON_PAIN_COUNT}} {{FROZEN_COUNT}}
-             {{DIGEST}} {{PAIN_SECTIONS}} {{NON_PAIN_CARDS}} {{FOOTER_*}}
+  占位符清单：{{DATE}} {{ISSUE}} {{SCAN_COUNT}} {{PAIN_COUNT}} {{CROSS_COUNT}} {{FROZEN_COUNT}}
+             {{DIGEST}} {{PAIN_SECTIONS}} {{CROSS_CARDS}} {{CROSS_DOMAIN_TEXT}} {{CROSS_HINT}} {{FOOTER_*}}
+  注意：卡片张数由《SkillHub推荐偏好》决定，不要沿用模板里的样例数字
 -->
 <html lang="zh-CN">
 <head>
@@ -88,7 +89,7 @@
   <div class="stats">
     <div class="stat"><b>{{SCAN_COUNT}}</b><span>扫描技能（去重）</span></div>
     <div class="stat"><b>{{PAIN_COUNT}}</b><span>痛点推荐</span></div>
-    <div class="stat"><b>{{NON_PAIN_COUNT}}</b><span>非痛点推荐</span></div>
+    <div class="stat"><b>{{CROSS_COUNT}}</b><span>跨领域补充</span></div>
     <div class="stat"><b>{{FROZEN_COUNT}}</b><span>冷冻剔除</span></div>
   </div>
 
@@ -101,7 +102,7 @@
     <!-- ============ 痛点分组（每组重复此块，p1..p6 轮换配色） ============ -->
     <div class="pain p1"><i style="background:var(--p1)"></i>{{PAIN_EMOJI}} {{PAIN_NAME}}</div>
 
-    <!-- ============ 技能卡片（每张重复此块） ============ -->
+    <!-- ============ 技能卡片（每张重复此块；每痛点 ≤3 张用 ① ② ③，>3 张改用 1 2 3 4 5） ============ -->
     <div class="card p1">
       <div class="top">
         <span class="idx">①</span>
@@ -129,16 +130,18 @@
   </section>
 
   <section>
-    <h2>🧩 非痛点推荐 <em>5 个 · 跨 5 个领域</em></h2>
-    <div class="hint">不命中你的痛点，但收藏数高、口碑好，且来自 5 个不同板块 —— 用来扩展视野。</div>
+    <h2>🧩 跨领域补充 <em>{{CROSS_COUNT}} 个 · {{CROSS_DOMAIN_TEXT}}</em></h2>
+    <div class="hint">{{CROSS_HINT}}</div>
 
     <!-- 卡片结构同痛点推荐，改用 class="card"（配色为中性灰） -->
+    <!-- 条数为 0 时，整个 section 一并删除，不要留空标题 -->
   </section>
 
   <footer>
     <p><span class="k">生成时间</span>：{{FOOTER_TIME}}</p>
     <p><span class="k">数据来源</span>：{{FOOTER_SOURCE}}</p>
     <p><span class="k">推荐门槛</span>：{{FOOTER_THRESHOLD}}</p>
+    <p><span class="k">本期口径</span>：{{FOOTER_PREF}}</p>
     <p><span class="k">本期变化</span>：{{FOOTER_CHANGES}}</p>
     <p><span class="k">冷冻状态</span>：{{FOOTER_FREEZE}}</p>
   </footer>

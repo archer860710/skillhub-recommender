@@ -38,6 +38,9 @@ LOCAL_PATH_PATTERNS = [
     (r"D:\\\\?WorkBuddy Projects", "本机工作区路径"),
 ]
 
+# 这四项在就说明「条数/周期由用户定」的能力还在；少了任意一项，多半是又被写死了
+PREF_ANCHORS = ["《SkillHub推荐偏好》", "每条痛点推荐数", "跨领域补充数", "冷冻期"]
+
 
 class Report:
     def __init__(self, quiet: bool = False) -> None:
@@ -195,8 +198,18 @@ def check_structure(rep: Report) -> dict:
             rep.error("task-prompt.md 似乎不是完整任务提示词（未找到标题行）")
         if "star_rate" not in t and "收藏率" not in t:
             rep.warn("task-prompt.md 未提及收藏率口径，易被误解")
+        missing = [k for k in PREF_ANCHORS if k not in t]
+        if missing:
+            rep.error(f"task-prompt.md 缺少口径可配置锚点：{missing} —— 会被退回成把条数写死")
+        else:
+            rep.good("task-prompt.md 保留口径可配置（偏好文档驱动）")
     else:
         rep.warn("缺少 references/task-prompt.md（用户建定时任务需要它）")
+
+    if all(k in text for k in ("每条痛点推荐数", "跨领域补充数", "冷冻期")):
+        rep.good("SKILL.md 保留可配置口径表")
+    else:
+        rep.warn("SKILL.md 未展示可配置口径表，用户不知道能改什么")
 
     meta["name"] = name
     meta["version"] = version
