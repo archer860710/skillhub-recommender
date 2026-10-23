@@ -23,6 +23,13 @@
 - description 补「装什么 Skill 好」等触发词
 - `validate.py` 增加 test-prompts 覆盖度检查（19 项）
 
+### 数据时效
+
+- 全站规模、分类数不再写死在任何说明文字里：SKILL.md / README / task-prompt 的描述性数字改为「十万级」或不带数
+- task-prompt 明确要求：简报头部与页脚的全站总量、分类数、覆盖率，一律用本期接口 `data.total` 与 `/api/v1/categories` 的真实值
+- api-reference 的「已知数据」一节改标为「2026-10 快照，会变」，并说明总量增长只影响覆盖率的分母，不影响策略正确性
+- `validate.py` 增加陈旧数字检查（模板内出现 195,007 / 19 万即报错；task-prompt 缺 `data.total` 即报错），共 20 项
+
 ## [1.1.0] - 2026-10-23
 
 把「每痛点 3 个 + 跨领域 5 个」这类诉求从写死改成用户自定。

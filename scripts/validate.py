@@ -316,6 +316,23 @@ def check_preset_pains(rep: Report) -> None:
         rep.good("未发现预设痛点清单（痛点由用户提供）")
 
 
+def check_no_stale_numbers(rep: Report) -> None:
+    """模板里不许出现写死的全站规模 / 分类数 —— 这些每期都会变。"""
+    tpl = ROOT / "assets" / "briefing-template.html"
+    if not tpl.exists():
+        return
+    h = tpl.read_text(encoding="utf-8")
+    stale = [n for n in ("195,007", "195007", "19.5 万", "19 万") if n in h]
+    if stale:
+        rep.error(f"模板里写死了会变的数据：{stale} —— 改用 {{TOTAL_SKILLS}} / {{CATEGORY_COUNT}}")
+    else:
+        rep.good("模板未写死全站规模")
+
+    tp = ROOT / "references" / "task-prompt.md"
+    if tp.exists() and "data.total" not in tp.read_text(encoding="utf-8"):
+        rep.error("task-prompt.md 未要求从 data.total 现取全站规模，数字会过期")
+
+
 def check_size(rep: Report) -> None:
     files = list(iter_files(ROOT))
     total = sum(p.stat().st_size for p in files)
@@ -357,6 +374,7 @@ def main() -> int:
     rep = Report(quiet=args.quiet)
     check_structure(rep)
     check_template(rep)
+    check_no_stale_numbers(rep)
     check_preset_pains(rep)
     check_secrets(rep)
     check_size(rep)
