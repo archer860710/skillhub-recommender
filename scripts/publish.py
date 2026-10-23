@@ -175,26 +175,35 @@ def publish_github(version: str, note: str, dry: bool) -> str:
     return "ok"
 
 
-def stage_payload() -> Path:
+def stage_payload(lean: bool = False) -> Path:
     """只把该发的文件放进 dist/_stage 再上传。
 
     直接发仓库根目录会把 .git/ .gitignore .gitattributes dist/ 一起带上，
-    skillhub.cn 对扩展名有白名单，遇到 .gitattributes 直接 400。"""
-    stage = ROOT / "dist" / "_stage"
+    skillhub.cn 对扩展名有白名单，遇到 .gitattributes 直接 400。
+
+    lean=True 给 skillhub.club 用：那边总量上限 100KB，而完整包 124KB。
+    去掉的只有作者侧工具（三个脚本）和历史变更记录，文档一份不少。"""
+    stage = ROOT / "dist" / ("_stage_lean" if lean else "_stage")
     if stage.exists():
         shutil.rmtree(stage)
     stage.mkdir(parents=True)
     # 注意：skillhub.cn 对文件扩展名有白名单，无扩展名的 LICENSE、.gitattributes
     # 都会被 400 拒掉。LICENSE 只留在 GitHub 仓库里，不进上传包。
-    for name in ("SKILL.md", "README.md", "CHANGELOG.md"):
+    names = ("SKILL.md", "README.md") if lean else ("SKILL.md", "README.md", "CHANGELOG.md")
+    for name in names:
         src = ROOT / name
         if src.exists():
             shutil.copy2(src, stage / name)
-    for d in ("assets", "references", "scripts"):
+    dirs = ("assets", "references") if lean else ("assets", "references", "scripts")
+    for d in dirs:
         src = ROOT / d
         if src.exists():
             shutil.copytree(src, stage / d,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    # club 靠项目内的 .skillhub.json 识别工程，必须一并带过去
+    cfg = ROOT / ".skillhub.json"
+    if cfg.exists():
+        shutil.copy2(cfg, stage / cfg.name)
     return stage
 
 
@@ -243,8 +252,11 @@ def publish_club(version: str, note: str, dry: bool) -> str:
     if reg:
         env["npm_config_registry"] = reg
     base = [npx, "-y", "@skill-hub/cli"]
-    run(base + ["push", "--create", "-m", f"v{version} — {note}"], dry=dry, check=False, env=env)
-    code, _ = run(base + ["publish", "-y"], dry=dry, check=False, env=env)
+    payload = ROOT if dry else stage_payload(lean=True)
+    # -f 必须带：不带会停在确认提示上等输入，在非交互环境里表现为无限挂起
+    run(base + ["push", "--create", "-f", "-m", f"v{version} — {note}"],
+        dry=dry, check=False, env=env, cwd=payload)
+    code, _ = run(base + ["publish", "-y"], dry=dry, check=False, env=env, cwd=payload)
     if dry:
         print("  · dry-run：未实际发布（需先 npx @skill-hub/cli login 完成 OAuth）")
         return "ok"

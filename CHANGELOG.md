@@ -2,6 +2,22 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
+## [1.1.4] - 2026-10-23
+
+首次真实发布到三个平台，把踩到的坑写回文档与脚本。
+
+### 修正
+
+- **skillhub.cn 400 拒包**：直接发仓库根目录会带上 `.gitattributes` 和 `LICENSE`，平台的扩展名白名单直接把整个包拒掉（`不允许的文件类型`）。改为先复制到 `dist/_stage/` 再上传，只放 `.md` / `.html` / `.py`
+- **club 的 100 KB 总量上限**：完整包 124 KB 超限（`Total size (124KB) exceeds limit (100KB)`）。给 club 单独出精简包 `dist/_stage_lean/`：去掉 `scripts/` 三个作者侧工具和 `CHANGELOG.md`，文档一份不少，约 92 KB
+- **club 的 `push` 必须带 `-f`**：不带会停在确认提示等输入，在非交互环境里表现为静默挂起十分钟且不报错。这是最难排查的一种失败
+- **CLI 已登录但脚本判成未登录**：原来只认 `--token` / 环境变量，改为先探 `auth whoami`，已登录就不再传 token
+
+### 文档
+
+- `publishing.md` 三节全部改为「实际撞到过什么」，附真实报错原文；常见失败表补 5 条
+- 记下三平台的实际地址与 skillId：GitHub 仓库、skillhub.cn `skillId=290972`、club `/skills/7b15c694-skillhub-recommender`
+
 ## [1.1.3] - 2026-10-23
 
 第二次以新用户身份走全流程，这次按「会中途放弃的人」来模拟，找出三个设计层面的问题。

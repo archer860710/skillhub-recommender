@@ -14,7 +14,7 @@ description: >
 license: MIT
 metadata:
   author: archer860710
-  version: "1.1.3"
+  version: "1.1.4"
   repository: https://github.com/archer860710/skillhub-recommender
 ---
 
