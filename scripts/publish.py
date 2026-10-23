@@ -175,6 +175,35 @@ def publish_github(version: str, note: str, dry: bool) -> str:
     return "ok"
 
 
+def stage_payload() -> Path:
+    """只把该发的文件放进 dist/_stage 再上传。
+
+    直接发仓库根目录会把 .git/ .gitignore .gitattributes dist/ 一起带上，
+    skillhub.cn 对扩展名有白名单，遇到 .gitattributes 直接 400。"""
+    stage = ROOT / "dist" / "_stage"
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir(parents=True)
+    # 注意：skillhub.cn 对文件扩展名有白名单，无扩展名的 LICENSE、.gitattributes
+    # 都会被 400 拒掉。LICENSE 只留在 GitHub 仓库里，不进上传包。
+    for name in ("SKILL.md", "README.md", "CHANGELOG.md"):
+        src = ROOT / name
+        if src.exists():
+            shutil.copy2(src, stage / name)
+    for d in ("assets", "references", "scripts"):
+        src = ROOT / d
+        if src.exists():
+            shutil.copytree(src, stage / d,
+                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    return stage
+
+
+def cn_logged_in(cli: list[str]) -> bool:
+    """CLI 已登录时不必再传 token。auth whoami 有 userId 输出即视为已登录。"""
+    code, out = run(cli + ["auth", "whoami"], check=False)
+    return code == 0 and "userId" in out
+
+
 def publish_cn(version: str, note: str, dry: bool, token: str | None) -> str:
     print("\n[skillhub.cn]")
     cli = resolve_cn_cli()
@@ -183,11 +212,13 @@ def publish_cn(version: str, note: str, dry: bool, token: str | None) -> str:
         print("    curl -fsSL https://skillhub-1388575217.cos.ap-guangzhou.myqcloud.com/install/install.sh | bash")
         return "skip"
     tok = token or os.environ.get("SKILLHUB_CN_TOKEN", "")
-    if not tok and not dry:
-        print("  · 缺少 Token，跳过。先去 skillhub.cn 个人设置生成 skh_ 开头的 Token，然后：")
-        print("    export SKILLHUB_CN_TOKEN=skh_xxx    # 或 --token skh_xxx")
+    if not tok and not dry and not cn_logged_in(cli):
+        print("  · 既没有 Token，CLI 也未登录，跳过。二选一：")
+        print("    skillhub login --key skh_xxx    # 或")
+        print("    export SKILLHUB_CN_TOKEN=skh_xxx")
         return "skip"
-    cmd = cli + ["publish", str(ROOT), "--version", version, "--changelog", note]
+    payload = stage_payload() if not dry else ROOT
+    cmd = cli + ["publish", str(payload), "--version", version, "--changelog", note]
     if tok:
         cmd += ["--token", tok]
     code, out = run(cmd, dry=dry, check=False)
