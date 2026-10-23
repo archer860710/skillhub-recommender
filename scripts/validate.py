@@ -50,6 +50,13 @@ PRESET_PAIN_BLACKLIST = [
 
 PAIN_ANCHORS = ["不在提示词里固化任何具体痛点", "全领域均衡"]
 
+# 交付链路和分级门槛是两次真事故换来的，删掉任意一项用户都会白等一期 / 冷门方向直接空掉
+ROBUSTNESS_ANCHORS = [
+    "不等于交付",      # 写完文件 ≠ 交付给用户
+    "兜底",            # 收藏数门槛必须有第二档
+    "候选池深度",      # 池子撑不了几期要显式告诉用户
+]
+
 
 class Report:
     def __init__(self, quiet: bool = False) -> None:
@@ -221,6 +228,11 @@ def check_structure(rep: Report) -> dict:
             rep.error(f"task-prompt.md 缺少痛点必须由用户提供的锚点：{missing_pain}")
         else:
             rep.good("task-prompt.md 要求痛点由用户提供，不代填")
+        missing_robust = [k for k in ROBUSTNESS_ANCHORS if k not in t]
+        if missing_robust:
+            rep.error(f"task-prompt.md 缺少健壮性锚点：{missing_robust} —— 交付会断 / 冷门方向会空")
+        else:
+            rep.good("task-prompt.md 保留交付降级链与分级门槛")
     else:
         rep.warn("缺少 references/task-prompt.md（用户建定时任务需要它）")
 
